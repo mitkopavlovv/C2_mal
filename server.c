@@ -10,7 +10,7 @@
 int main() {
     int sock, client_socket;
     char buffer[1024];
-    char reponse[4096];
+    char reponse[16836];
     struct sockaddr_in server_address, client_address;
     int i = 0;
     int optval = 1;
@@ -23,7 +23,7 @@ int main() {
         return 1;
     }
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_address.sin_addr.s_addr = inet_addr("0.0.0.0");
     server_address.sin_port = htons(57890);
 
     bind(sock, (struct sockaddr*) &server_address, sizeof(server_address));

