@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+
+
+#define SERVERADDR "0.0.0.0"
+#define SERVERPORT 57890
 
 int main() {
     int sock, client_socket;
@@ -23,8 +28,8 @@ int main() {
         return 1;
     }
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("0.0.0.0");
-    server_address.sin_port = htons(57890);
+    server_address.sin_addr.s_addr = inet_addr(SERVERADDR);
+    server_address.sin_port = htons(SERVERPORT);
 
     bind(sock, (struct sockaddr*) &server_address, sizeof(server_address));
     listen(sock, 5);
